@@ -1,0 +1,25 @@
+{
+  "name": "rosweb_ws",
+  "version": "1.0.0",
+  "description": "rosweb controller",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LXYYY/rosweb_controller.git"
+  },
+  "keywords": [
+    "rosweb_controller"
+  ],
+  "author": "Mike Xiangyu Liu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LXYYY/rosweb_controller/issues"
+  },
+  "homepage": "https://github.com/LXYYY/rosweb_controller#readme",
+  "dependencies": {
+    "vue-js-toggle-button": "^1.3.3"
+  }
+}

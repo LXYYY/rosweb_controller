@@ -1,5 +1,4 @@
 // ws://54.147.26.233:9090
-
 var app = new Vue({
     el: '#app',
     // storing the state of the page
@@ -11,10 +10,16 @@ var app = new Vue({
         loading: false,
         topic: null,
         message: null,
+        enable_accel: false,
+        accel_timer: '',
+        maxLin: 0.6,
+        maxAng: 0.3,
+        curLin: 0,
+        curAng: 0
     },
     // helper methods to connect to ROS
     methods: {
-        connect: function() {
+        connect: function () {
             this.loading = true
             this.ros = new ROSLIB.Ros({
                 url: this.ws_address
@@ -32,18 +37,19 @@ var app = new Vue({
                 this.connected = false
                 this.loading = false
             })
+
         },
-        disconnect: function() {
+        disconnect: function () {
             this.ros.close()
         },
-        setTopic: function() {
+        setTopic: function () {
             this.topic = new ROSLIB.Topic({
                 ros: this.ros,
                 name: '/cmd_vel',
                 messageType: 'geometry_msgs/Twist'
             })
         },
-        forward: function() {
+        forward: function () {
             this.message = new ROSLIB.Message({
                 linear: { x: 1, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: 0, },
@@ -51,7 +57,7 @@ var app = new Vue({
             this.setTopic()
             this.topic.publish(this.message)
         },
-        stop: function() {
+        stop: function () {
             this.message = new ROSLIB.Message({
                 linear: { x: 0, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: 0, },
@@ -59,7 +65,7 @@ var app = new Vue({
             this.setTopic()
             this.topic.publish(this.message)
         },
-        backward: function() {
+        backward: function () {
             this.message = new ROSLIB.Message({
                 linear: { x: -1, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: 0, },
@@ -67,7 +73,7 @@ var app = new Vue({
             this.setTopic()
             this.topic.publish(this.message)
         },
-        turnLeft: function() {
+        turnLeft: function () {
             this.message = new ROSLIB.Message({
                 linear: { x: 0.5, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: 0.5, },
@@ -75,7 +81,7 @@ var app = new Vue({
             this.setTopic()
             this.topic.publish(this.message)
         },
-        turnRight: function() {
+        turnRight: function () {
             this.message = new ROSLIB.Message({
                 linear: { x: 0.5, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: -0.5, },
@@ -83,10 +89,52 @@ var app = new Vue({
             this.setTopic()
             this.topic.publish(this.message)
         },
-        enableAccel: function(){
-            
+        sendCommand: function (_x, _z) {
+            this.message = new ROSLIB.Message({
+                linear: { x: _x, y: 0, z: 0, },
+                angular: { x: 0, y: 0, z: _z, },
+            })
+            this.setTopic()
+            this.topic.publish(this.message)
+        },
+        toggleAccelMode: function () {
+            DeviceMotionEvent.requestPermission()
+                .then(response => {
+                    this.logs.unshift(response)
+                    if (response == 'granted') {
+                        window.addEventListener('devicemotion', this.accelCallback)
+                    }
+                })
+                .catch(console.error)
+            this.enable_accel = !this.enable_accel
+            this.logs.unshift('enable accel controller ' + this.enable_accel)
+        },
+        accelCallback: function (e) {
+            if (this.enable_accel) {
+                var acc = [e.accelerationIncludingGravity.x, e.accelerationIncludingGravity.y];
+                var maxima = [this.maxLin, this.maxAng]
+                for (var i = 0; i < 2; i++) {
+                    if (Math.abs(acc[i]) < 2) {
+                        acc[i] = 0
+                    } else {
+                        var sign = Math.abs(acc[i]) / acc[i]
+                        if (i == 0) acc[i] -= sign * 2
+                        if (sign * acc[i] > 7) acc[i] = sign * 7
+                        acc[i] = maxima[i] * acc[i] / 7
+                    }
+                }
+                this.curLin = acc[0]
+                this.curAng = acc[1]
+            }
+        },
+        keepSendCommand: function () {
+            this.sendCommand(this.curLin, this.curAng)
         }
     },
     mounted() {
+
+        setInterval(this.keepSendCommand, 500)
+        this.logs.unshift('mounted')
     },
 })
+
