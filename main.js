@@ -24,7 +24,8 @@ var app = new Vue({
             mode: 'static',
             size: 150,
             color: '#000000',
-        }
+        },
+        jsPubTimer: null
     },
     // helper methods to connect to ROS
     methods: {
@@ -91,14 +92,16 @@ var app = new Vue({
             this.topic.publish(this.message)
         },
         turnRight: function () {
-            this.message = new ROSLIB.Message({
-                linear: { x: 0.5, y: 0, z: 0, },
-                angular: { x: 0, y: 0, z: -0.5, },
-            })
-            this.setTopic()
-            this.topic.publish(this.message)
+            // this.message = new ROSLIB.Message({
+            //     linear: { x: 0.5, y: 0, z: 0, },
+            //     angular: { x: 0, y: 0, z: -0.5, },
+            // })
+            // this.setTopic()
+            // this.topic.publish(this.message)
+            this.sendCommand(0.5, 0.5)
         },
         sendCommand: function (_x, _z) {
+            console.log('sending cmd_vel' + this.curLin, this.curAng)
             this.message = new ROSLIB.Message({
                 linear: { x: _x, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: _z, },
@@ -139,28 +142,31 @@ var app = new Vue({
         keepSendCommand: function () {
             this.sendCommand(this.curLin, this.curAng)
         },
+        jsStartCallback: function (event, nipple) {
+            this.jsPubTimer= setInterval(this.keepSendCommand, 100)
+        },
+        jsMoveCallback: function (event, nipple) {
+            max_distance = 75.0; // pixels;
+            this.curLin = Math.sin(nipple.angle.radian) * this.maxLin * nipple.distance / max_distance;
+            this.curAng = -Math.cos(nipple.angle.radian) * this.maxAng * nipple.distance / max_distance;
+            console.log(Math.sin(nipple.angle.radian) * this.maxLin * nipple.distance / max_distance)
+            console.log(-Math.cos(nipple.angle.radian) * this.maxAng * nipple.distance / max_distance)
+            // this.sendCommand(this.curLin, this.curAng)
+        },
+        jsEndCallback: function () {
+            if (this.jsPubTimer) {
+                clearInterval(this.jsPubTimer);
+            }
+            this.curAng = 0
+            this.curLin = 0
+            this.sendCommand(this.curLin, this.curAng)
+        },
         createJoystick: function () {
-            this.nipple_manager = require('./node_modules/nipplejs').create(options)
-            manager.on('start', function (event, nipple) {
-                timer = setInterval(function () {
-                    this.sendCommand(this.curLin, this.curAng);
-                }, 100);
-            });
-
-            manager.on('move', function (event, nipple) {
-                max_distance = 75.0; // pixels;
-                linear_speed = Math.sin(nipple.angle.radian) * this.maxLin * nipple.distance / max_distance;
-                angular_speed = -Math.cos(nipple.angle.radian) * this.maxAng * nipple.distance / max_distance;
-            });
-
-            manager.on('end', function () {
-                if (timer) {
-                    clearInterval(timer);
-                }
-                this.curAng=0
-                this.curLin=0
-                this.sendCommand(this.curLin, this.curAng)
-            });
+            console.log('creating joystick')
+            this.nipple_manager = nipplejs.create(this.options)
+            this.nipple_manager.on('start', this.jsStartCallback)
+            this.nipple_manager.on('move', this.jsMoveCallback)
+            this.nipple_manager.on('end', this.jsEndCallback)
         }
     },
     mounted() {
