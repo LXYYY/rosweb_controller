@@ -1,7 +1,7 @@
 // ws://54.147.26.233:9090
 var app = new Vue({
     el: '#app',
-    // storing the state of the page
+    // // storing the state of the page
     data: {
         connected: false,
         ros: null,
@@ -15,7 +15,16 @@ var app = new Vue({
         maxLin: 0.6,
         maxAng: 0.3,
         curLin: 0,
-        curAng: 0
+        curAng: 0,
+        nipple_manager: null,
+        options: {
+            zone: document.getElementById('zone_joystick'),
+            threshold: 0.1,
+            position: { left: 50 + '%' },
+            mode: 'static',
+            size: 150,
+            color: '#000000',
+        }
     },
     // helper methods to connect to ROS
     methods: {
@@ -129,11 +138,34 @@ var app = new Vue({
         },
         keepSendCommand: function () {
             this.sendCommand(this.curLin, this.curAng)
+        },
+        createJoystick: function () {
+            this.nipple_manager = require('./node_modules/nipplejs').create(options)
+            manager.on('start', function (event, nipple) {
+                timer = setInterval(function () {
+                    this.sendCommand(this.curLin, this.curAng);
+                }, 100);
+            });
+
+            manager.on('move', function (event, nipple) {
+                max_distance = 75.0; // pixels;
+                linear_speed = Math.sin(nipple.angle.radian) * this.maxLin * nipple.distance / max_distance;
+                angular_speed = -Math.cos(nipple.angle.radian) * this.maxAng * nipple.distance / max_distance;
+            });
+
+            manager.on('end', function () {
+                if (timer) {
+                    clearInterval(timer);
+                }
+                this.curAng=0
+                this.curLin=0
+                this.sendCommand(this.curLin, this.curAng)
+            });
         }
     },
     mounted() {
-
-        setInterval(this.keepSendCommand, 500)
+        this.createJoystick()
+        // setInterval(this.keepSendCommand, 500)
         this.logs.unshift('mounted')
     },
 })
