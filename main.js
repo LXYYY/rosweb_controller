@@ -5,7 +5,7 @@ var app = new Vue({
     data: {
         connected: false,
         ros: null,
-        ws_address: 'ws://192.168.0.3:9090',
+        ws_address: 'ws://10.42.0.1:9090',
         logs: [],
         loading: false,
         topic: null,
