@@ -5,7 +5,7 @@ var app = new Vue({
     data: {
         connected: false,
         ros: null,
-        ws_address: 'ws://10.42.0.1:9090',
+        ws_address: 'ws://192.168.0.11:9090',
         logs: [],
         loading: false,
         topic: null,
@@ -85,20 +85,19 @@ var app = new Vue({
         },
         turnLeft: function () {
             this.message = new ROSLIB.Message({
-                linear: { x: 0.5, y: 0, z: 0, },
+                linear: { x: 0, y: 0, z: 0, },
                 angular: { x: 0, y: 0, z: 0.5, },
             })
             this.setTopic()
             this.topic.publish(this.message)
         },
         turnRight: function () {
-            // this.message = new ROSLIB.Message({
-            //     linear: { x: 0.5, y: 0, z: 0, },
-            //     angular: { x: 0, y: 0, z: -0.5, },
-            // })
-            // this.setTopic()
-            // this.topic.publish(this.message)
-            this.sendCommand(0.5, 0.5)
+            this.message = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0, },
+                angular: { x: 0, y: 0, z: -0.5, },
+            })
+            this.setTopic()
+            this.topic.publish(this.message)
         },
         sendCommand: function (_x, _z) {
             console.log('sending cmd_vel' + this.curLin, this.curAng)
